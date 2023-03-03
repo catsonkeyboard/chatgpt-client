@@ -1,0 +1,6 @@
+namespace OpenAI;
+
+public static class Constants
+{
+    public const string EnvironmentVariableApiKey = "OPENAI_API_KEY";
+}
