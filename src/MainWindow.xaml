@@ -8,7 +8,7 @@
         xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
         mc:Ignorable="d"
         Title="{Binding ViewModel.ApplicationTitle, Mode=OneWay}"
-        Height="600" 
+        Height="600"
         Width="800"
         d:DataContext="{d:DesignInstance local:MainWindow,
                                          IsDesignTimeCreatable=False}"
@@ -249,7 +249,7 @@
                 </Border>
 
                 <!--Messages-->
-                <ItemsControl x:Name="MessagesItemsCtrl" Grid.Column="1" Margin="0,5,0,0" 
+                <ItemsControl Grid.Column="1" Margin="0,5,0,0" 
                       ItemsSource="{Binding ViewModel.ChatMessageList}" 
                       ItemTemplate="{DynamicResource MessagesDataTemplate}"
                       ScrollViewer.VerticalScrollBarVisibility="Auto">
@@ -264,7 +264,7 @@
 
                 <Border Grid.Row="1" Grid.Column="1" SnapsToDevicePixels="True"
                         BorderBrush="{DynamicResource ControlElevationBorderBrush}">
-                    <Grid>
+                    <Grid DataContext="{Binding ViewModel.Prompt}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition/>
                             <ColumnDefinition Width="50"/>
@@ -279,12 +279,12 @@
                                      VerticalScrollBarVisibility="Auto" 
                                      Background="{DynamicResource ControlFillColorDefaultBrush}"
                                      Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                                     Text="{Binding ViewModel.TextMessage, UpdateSourceTrigger=PropertyChanged}">
+                                     Text="{Binding Prompt, UpdateSourceTrigger=PropertyChanged}">
                             </TextBox>
                         </Border>
                         <Button x:Name="SendButton" Grid.Column="1" Margin="10"
                                 Style="{DynamicResource SendButtonStyle}"
-                                Command="{Binding ViewModel.SendMessageCommand}"/>
+                                Command="{Binding SendCommand}"/>
                     </Grid>
                 </Border>
             </Grid>

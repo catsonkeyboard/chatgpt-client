@@ -18,13 +18,10 @@ namespace ChatWpfUI
         private readonly IServiceProvider _serviceProvider;
 
         [ObservableProperty]
-        private string _applicationTitle = "ChatGPT-WPF-UI";
+        private string _applicationTitle = "ChatGPT-UI";
 
         [ObservableProperty]
-        private string _textMessage = string.Empty;
-
-        [ObservableProperty]
-        private string _messageContent = string.Empty;
+        private ChatMessageViewModel _prompt = new ChatMessageViewModel();
 
         [ObservableProperty]
         private ObservableCollection<ChatHistoryViewModel> _chatList;
@@ -33,36 +30,117 @@ namespace ChatWpfUI
         private ChatHistoryViewModel _selectedChat;
 
         [ObservableProperty]
-        private ObservableCollection<ChatViewModel> _chatMessageList;
+        private ObservableCollection<ChatMessageViewModel> _chatMessageList;
+
+        [ObservableProperty]
+        private ChatMessageViewModel _currentChatMessage;
+
+        [ObservableProperty]
+        private bool _isEnabled;
 
         public MainViewModel(IServiceProvider serviceProvider) 
         {
             _serviceProvider = serviceProvider;
-            ChatList = new ObservableCollection<ChatHistoryViewModel> 
-            {
-                new ChatHistoryViewModel { Name = "111" },
-                new ChatHistoryViewModel { Name = "222" },
-                new ChatHistoryViewModel { Name = "333" },
-                new ChatHistoryViewModel { Name = "444" },
-            };
+            ChatList = new ObservableCollection<ChatHistoryViewModel>();
+            ChatMessageList = new ObservableCollection<ChatMessageViewModel>();
+            NewChat();
+        }
 
-            ChatMessageList = new ObservableCollection<ChatViewModel>
+        private static ChatMessage[] CreateChatPrompt(
+            ChatMessageViewModel sendMessage,
+            ObservableCollection<ChatMessageViewModel> messages)
+        {
+            var chatMessages = new List<ChatMessage>();
+            chatMessages.Add(new ChatMessage
             {
-                new ChatViewModel { IsUser = true, Message = "Life is full of twists and turns. Sometimes we go through tough times that test our strength and resilience. But it's important to remember that every challenge we face is an opportunity for growth and learning. We can't control what happens to us, but we can control how we respond. We can choose to let difficult experiences break us down or build us up. We can choose to dwell on the negative or look for the positive. We can choose to give up or keep moving forward. Ultimately, our attitudes and actions determine our destiny. So, let's choose to be strong, courageous, and optimistic - no matter what life throws our way. Let's believe in ourselves, trust our instincts, and never give up on our dreams. Let's focus on the things we can control and let go of the things we can't. Let's surround ourselves with people who lift us up and inspire us to be our best selves. Let's be kind, compassionate, and understanding towards ourselves and others. Let's take life one day at a time, and make the most of every moment. After all, life is short, but it can be filled with joy, love, and purpose if we make it so. So, let's live each day to the fullest, and make a positive difference in the world around us.", Time = DateTime.Now.AddDays(1) },
-                new ChatViewModel { IsUser = false, Message = "Life is full of twists and turns. Sometimes we go through tough times that test our strength and resilience. But it's important to remember that every challenge we face is an opportunity for growth and learning. We can't control what happens to us, but we can control how we respond. We can choose to let difficult experiences break us down or build us up. We can choose to dwell on the negative or look for the positive. We can choose to give up or keep moving forward. Ultimately, our attitudes and actions determine our destiny. So, let's choose to be strong, courageous, and optimistic - no matter what life throws our way. Let's believe in ourselves, trust our instincts, and never give up on our dreams. Let's focus on the things we can control and let go of the things we can't. Let's surround ourselves with people who lift us up and inspire us to be our best selves. Let's be kind, compassionate, and understanding towards ourselves and others. Let's take life one day at a time, and make the most of every moment. After all, life is short, but it can be filled with joy, love, and purpose if we make it so. So, let's live each day to the fullest, and make a positive difference in the world around us.", Time = DateTime.Now.AddDays(2) },
-                new ChatViewModel { IsUser = false, Message = "Life is full of twists and turns. Sometimes we go through tough times that test our strength and resilience. But it's important to remember that every challenge we face is an opportunity for growth and learning. We can't control what happens to us, but we can control how we respond. We can choose to let difficult experiences break us down or build us up. We can choose to dwell on the negative or look for the positive. We can choose to give up or keep moving forward. Ultimately, our attitudes and actions determine our destiny. So, let's choose to be strong, courageous, and optimistic - no matter what life throws our way. Let's believe in ourselves, trust our instincts, and never give up on our dreams. Let's focus on the things we can control and let go of the things we can't. Let's surround ourselves with people who lift us up and inspire us to be our best selves. Let's be kind, compassionate, and understanding towards ourselves and others. Let's take life one day at a time, and make the most of every moment. After all, life is short, but it can be filled with joy, love, and purpose if we make it so. So, let's live each day to the fullest, and make a positive difference in the world around us.", Time = DateTime.Now.AddDays(1) },
+                Role = "system",
+                Content = ""
+            });
+            foreach (var message in messages)
+            {
+                if (!string.IsNullOrEmpty(message.Message) && message.Result is { })
+                {
+                    chatMessages.Add(new ChatMessage
+                    {
+                        Role = "user",
+                        Content = message.Message
+                    });
+                    chatMessages.Add(new ChatMessage
+                    {
+                        Role = "assistant",
+                        Content = message.Result.Message
+                    });
+                }
+            }
+
+            chatMessages.Add(new ChatMessage
+            {
+                Role = "user",
+                Content = sendMessage.Prompt
+            });
+
+            return chatMessages.ToArray();
+        }
+
+        private void NewChat()
+        {
+            var newChat = new ChatHistoryViewModel
+            {
+                Name = "New Chat",
+            };
+            ChatList.Add(newChat);
+
+            Prompt = new ChatMessageViewModel
+            {
+                Prompt = string.Empty,
+                Send = Send
             };
         }
 
-        [RelayCommand]
-        public void SendMessage()
+        private async Task NewAction()
         {
-            var chatMessages = new List<ChatMessage>();
-            chatMessages.Add(new ChatMessage { Role = "user", Content = TextMessage });
+            NewChat();
+            await Task.Yield();
+        }
+
+
+        public async Task Send(ChatMessageViewModel sendMessage)
+        {
+            if(string.IsNullOrEmpty(sendMessage.Prompt))
+            {
+                return;
+            }
+
+            var chatPrompts = CreateChatPrompt(sendMessage, ChatMessageList);
+            IsEnabled = false;
+            sendMessage.IsUser = true;
+            sendMessage.IsSent = true;
+            ChatMessageViewModel? promptMessage;
+            ChatMessageViewModel? resultMessage = null;
+            if (sendMessage.Result is { })
+            {
+                promptMessage = sendMessage;
+                resultMessage = sendMessage.Result;
+            }
+            else
+            {
+                promptMessage = new ChatMessageViewModel();
+                promptMessage.Send = this.Send;
+                ChatMessageList.Add(promptMessage);
+            }
+
+            var prompt = sendMessage.Prompt;
+            promptMessage.Message = prompt;
+            promptMessage.Prompt = "";
+            promptMessage.IsSent = true;
+            promptMessage.IsUser = true;
+            promptMessage.Time = DateTime.Now;
+
+            CurrentChatMessage = promptMessage;
             var chatServiceSettings = new ChatServiceSettings
             {
                 Model = "gpt-3.5-turbo",
-                Messages = chatMessages.ToArray(),
+                Messages = chatPrompts,
                 Suffix = null,
                 Temperature = 0.7m,
                 MaxTokens = 256,
@@ -70,23 +148,67 @@ namespace ChatWpfUI
                 Stop = null,
                 ApiKey = ""
             };
-
+            var responseStr = default(string);
+            bool isResponseStrError = false;
             IChatService chatService = _serviceProvider.GetService<IChatService>();
-            var chat = chatService.GetResponseDataAsync(chatServiceSettings);
-            chat.GetAwaiter().OnCompleted(() =>
+            var responseData = await chatService.GetResponseDataAsync(chatServiceSettings);
+            if(responseData is null)
             {
-                ChatResponse result = chat.Result;
-                if (result != null && result is ChatResponseSuccess success)
+                responseStr = "error";
+                isResponseStrError = true;
+            }
+            else if (responseData is ChatResponseError error)
+            {
+                var message = error.Error?.Message;
+                responseStr = message ?? "Unknown error.";
+                isResponseStrError = true;
+            }
+            else if (responseData is ChatResponseSuccess success)
+            {
+                var message = success.Choices?.FirstOrDefault()?.Message?.Content?.Trim();
+                responseStr = message ?? "";
+            }
+
+            // Update
+
+            if (isResponseStrError)
+            {
+                resultMessage = promptMessage;
+            }
+
+            if (resultMessage is null)
+            {
+                resultMessage = new ChatMessageViewModel
                 {
-                    foreach (var choice in success.Choices)
-                    {
-                        System.Windows.Application.Current.Dispatcher.Invoke(() =>
-                        {
-                            MessageContent = choice.Message.Content;
-                        });
-                    }
+                    IsSent = false,
+                };
+                resultMessage.Send = this.Send;
+                ChatMessageList.Add(resultMessage);
+            }
+            else
+            {
+                if (!isResponseStrError)
+                {
+                    resultMessage.IsSent = true;
                 }
-            });
+            }
+            resultMessage.Message = responseStr;
+            resultMessage.IsUser = false;
+            resultMessage.Time = DateTime.Now;
+            resultMessage.IsError = isResponseStrError;
+            resultMessage.Prompt = isResponseStrError ? prompt : "";
+
+            if (ChatMessageList.LastOrDefault() == resultMessage)
+            {
+                resultMessage.IsSent = false;
+            }
+
+            //set resultMessage to current
+            CurrentChatMessage = resultMessage;
+            //set resultMessage to promptMessage's result
+            promptMessage.Result = isResponseStrError ? null : resultMessage;
+
+            IsEnabled = true;
         }
     }
 }
