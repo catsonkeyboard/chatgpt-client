@@ -6,6 +6,7 @@
         xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
         xmlns:local="clr-namespace:ChatWpfUI"
         xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+        xmlns:mdxam="clr-namespace:MdXaml;assembly=MdXaml"
         mc:Ignorable="d"
         Title="{Binding ViewModel.ApplicationTitle, Mode=OneWay}"
         Height="600"
@@ -190,9 +191,14 @@
                         <RowDefinition />
                         <RowDefinition Height="15"/>
                     </Grid.RowDefinitions>
-                    <TextBlock x:Name="MessageTxtBlock" Grid.Row="1" Margin="7,5,7,0" TextWrapping="Wrap" 
+                    <mdxam:MarkdownScrollViewer x:Name="MessageTxtBlock" Grid.Row="1" Margin="7,5,7,0"
+                                                FontFamily="Arial,SimSun" Background="{DynamicResource SystemAltHighColorBrush}"
+                               VerticalAlignment="Stretch" HorizontalAlignment="Stretch"
+                                                MarkdownStyle="{StaticResource MdStyle}"
+                               Markdown="{Binding Message}" />
+                    <!--<TextBlock x:Name="MessageTxtBlock" Grid.Row="1" Margin="7,5,7,0" TextWrapping="Wrap" 
                                VerticalAlignment="Stretch" HorizontalAlignment="Stretch" 
-                               Text="{Binding Message}"/>
+                               Text="{Binding Message}"/>-->
                     <TextBlock Grid.Row="2" HorizontalAlignment="Right" VerticalAlignment="Stretch"
                                Margin="0,0,5,0" FontSize="10" Opacity="0.8"
                                Text="{Binding Time, StringFormat={}{0:t}}"/>
