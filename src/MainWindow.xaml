@@ -241,6 +241,7 @@
                 <Border Grid.RowSpan="2" BorderThickness="0,0,0,0" SnapsToDevicePixels="True"
                         BorderBrush="{DynamicResource ControlElevationBorderBrush}">
                     <ListBox ItemsSource="{Binding ViewModel.ChatList}"
+                         SelectedIndex="0"
                          ItemTemplate="{DynamicResource ChatListBoxItemTemplate}"
                          ItemContainerStyle="{DynamicResource ChatListBoxItemStyle}"
                          SelectedItem="{Binding ViewModel.SelectedChat}"                     
@@ -269,9 +270,7 @@
                             <ColumnDefinition/>
                             <ColumnDefinition Width="50"/>
                         </Grid.ColumnDefinitions>
-                        <Border Margin="10,10,0,10" MaxHeight="80"
-                                BorderThickness="1" BorderBrush="{DynamicResource ControlElevationBorderBrush}">
-                            <TextBox x:Name="MessageTxtBox" 
+                        <TextBox x:Name="prompt" 
                                      BorderBrush="{DynamicResource ControlElevationBorderBrush}"
                                      TextWrapping="Wrap" 
                                      AcceptsReturn="True" 
@@ -280,16 +279,14 @@
                                      Background="{DynamicResource ControlFillColorDefaultBrush}"
                                      Foreground="{DynamicResource TextFillColorPrimaryBrush}"
                                      Text="{Binding Prompt, UpdateSourceTrigger=PropertyChanged}">
-                            </TextBox>
-                        </Border>
-                        <Button x:Name="SendButton" Grid.Column="1" Margin="10"
+                        </TextBox>
+                        <Button x:Name="send" Grid.Column="1" Margin="10"
                                 Style="{DynamicResource SendButtonStyle}"
                                 Command="{Binding SendCommand}"/>
                     </Grid>
                 </Border>
             </Grid>
         </Grid>
-
         <ui:TitleBar
             Title="{Binding ViewModel.ApplicationTitle}"
             Grid.Row="0"

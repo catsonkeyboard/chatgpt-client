@@ -10,6 +10,8 @@ namespace ChatWpfUI
 {
     public class ChatMessageViewModel : ObservableObject
     {
+        public string Id { get; set; }
+
         public bool IsUser { get; set; }
 
         public string Avatar { get; set; }
@@ -29,6 +31,8 @@ namespace ChatWpfUI
         public bool IsAwaiting { get; set; }
 
         public ChatMessageViewModel Result { get; set; }
+
+        public ChatMessageViewModel Parent { get; set; }
 
         public Func<ChatMessageViewModel, Task>? Send { get;set; }
 

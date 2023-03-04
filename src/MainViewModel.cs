@@ -1,5 +1,7 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+﻿using ChatWpfUI.Model;
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using LiteDB;
 using Microsoft.Extensions.DependencyInjection;
 using OpenAI;
 using System;
@@ -24,10 +26,10 @@ namespace ChatWpfUI
         private ChatMessageViewModel _prompt = new ChatMessageViewModel();
 
         [ObservableProperty]
-        private ObservableCollection<ChatHistoryViewModel> _chatList;
+        private ObservableCollection<ChatViewModel> _chatList;
 
         [ObservableProperty]
-        private ChatHistoryViewModel _selectedChat;
+        private ChatViewModel _selectedChat;
 
         [ObservableProperty]
         private ObservableCollection<ChatMessageViewModel> _chatMessageList;
@@ -41,7 +43,7 @@ namespace ChatWpfUI
         public MainViewModel(IServiceProvider serviceProvider) 
         {
             _serviceProvider = serviceProvider;
-            ChatList = new ObservableCollection<ChatHistoryViewModel>();
+            ChatList = new ObservableCollection<ChatViewModel>();
             ChatMessageList = new ObservableCollection<ChatMessageViewModel>();
             NewChat();
         }
@@ -84,16 +86,18 @@ namespace ChatWpfUI
 
         private void NewChat()
         {
-            var newChat = new ChatHistoryViewModel
+            var newChat = new ChatViewModel
             {
+                Id = Guid.NewGuid().ToString().Replace("-", ""),
                 Name = "New Chat",
             };
             ChatList.Add(newChat);
 
             Prompt = new ChatMessageViewModel
             {
+                Id = Guid.NewGuid().ToString().Replace("-", ""),
                 Prompt = string.Empty,
-                Send = Send
+                Send = this.Send
             };
         }
 
@@ -103,12 +107,20 @@ namespace ChatWpfUI
             await Task.Yield();
         }
 
-
-        public async Task Send(ChatMessageViewModel sendMessage)
+        private async Task Send(ChatMessageViewModel sendMessage)
         {
             if(string.IsNullOrEmpty(sendMessage.Prompt))
             {
                 return;
+            }
+
+            if(sendMessage.Parent == null)
+            {
+                var last = ChatMessageList.LastOrDefault();
+                if(last != null)
+                {
+                    sendMessage.Parent = last;
+                }
             }
 
             var chatPrompts = CreateChatPrompt(sendMessage, ChatMessageList);
@@ -125,6 +137,8 @@ namespace ChatWpfUI
             else
             {
                 promptMessage = new ChatMessageViewModel();
+                promptMessage.Id = Guid.NewGuid().ToString().Replace("-", "");
+                promptMessage.Parent = sendMessage.Parent;
                 promptMessage.Send = this.Send;
                 ChatMessageList.Add(promptMessage);
             }
@@ -180,6 +194,7 @@ namespace ChatWpfUI
             {
                 resultMessage = new ChatMessageViewModel
                 {
+                    Id = Guid.NewGuid().ToString().Replace("-", ""),
                     IsSent = false,
                 };
                 resultMessage.Send = this.Send;
@@ -197,11 +212,14 @@ namespace ChatWpfUI
             resultMessage.Time = DateTime.Now;
             resultMessage.IsError = isResponseStrError;
             resultMessage.Prompt = isResponseStrError ? prompt : "";
+            resultMessage.Parent = promptMessage;
 
             if (ChatMessageList.LastOrDefault() == resultMessage)
             {
                 resultMessage.IsSent = false;
             }
+
+            await Save(SelectedChat, ChatMessageList);
 
             //set resultMessage to current
             CurrentChatMessage = resultMessage;
@@ -210,5 +228,60 @@ namespace ChatWpfUI
 
             IsEnabled = true;
         }
+
+        private async Task Save(ChatViewModel chatViewModel, ObservableCollection<ChatMessageViewModel> chatMessageViewModels)
+        {
+            using(var db = new LiteDatabase(@".\store.db"))
+            {
+                var chats = db.GetCollection<ChatDo>("chat");
+
+                ChatDo exists = chats.FindOne(p => p.Id.Equals(chatViewModel.Id));
+                if(exists != null) //存在chat则更新
+                {
+                    var messages = new List<MessageDo>();
+                    foreach (var messageViewModel in chatMessageViewModels)
+                    {
+                        MessageDo message = new MessageDo();
+                        message.id = messageViewModel.Id;
+                        message.parentId = messageViewModel.Parent?.Id;
+                        message.chatId = chatViewModel.Id;
+                        message.isUser = messageViewModel.IsUser;
+                        message.role = messageViewModel.IsUser ? "user" : "assistant";
+                        message.message = messageViewModel.Message;
+                        messages.Add(message);
+                    }
+                    exists.messages = messages;
+                    chats.Update(exists);
+                }
+                else //不存在则新增
+                {
+                    var newChat = new ChatDo
+                    {
+                        Id = chatViewModel.Id,
+                        name = chatViewModel.Name,
+                    };
+                    var messages = new List<MessageDo>();
+                    foreach (var messageViewModel in chatMessageViewModels)
+                    {
+                        MessageDo message = new MessageDo();
+                        message.id = messageViewModel.Id;
+                        message.parentId = messageViewModel.Parent?.Id;
+                        message.chatId = chatViewModel.Id;
+                        message.isUser = messageViewModel.IsUser;
+                        message.role = messageViewModel.IsUser ? "user" : "assistant";
+                        message.message = messageViewModel.Message;
+                        messages.Add(message);
+                    }
+                    newChat.messages = messages;
+                    chats.Insert(newChat);
+                }
+            }
+        }
+
+        private async Task Load()
+        {
+
+        }
+
     }
 }
