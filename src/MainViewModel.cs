@@ -7,6 +7,7 @@ using OpenAI;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -15,7 +16,7 @@ using System.Windows.Media;
 
 namespace ChatWpfUI
 {
-    public partial class MainViewModel : ObservableObject
+    public partial class MainViewModel : ObservableObject, IDisposable
     {
         private readonly IServiceProvider _serviceProvider;
 
@@ -45,7 +46,25 @@ namespace ChatWpfUI
             _serviceProvider = serviceProvider;
             ChatList = new ObservableCollection<ChatViewModel>();
             ChatMessageList = new ObservableCollection<ChatMessageViewModel>();
+            LoadHistory();
             NewChat();
+            this.PropertyChanged += MainViewModel_PropertyChanged;
+            this.MainViewModel_PropertyChanged(null, new PropertyChangedEventArgs(nameof(SelectedChat)));
+        }
+
+        private void MainViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if(e.PropertyName == nameof(SelectedChat))
+            {
+                if(SelectedChat.ChatMessageList != null)
+                {
+                    ChatMessageList = new ObservableCollection<ChatMessageViewModel>(SelectedChat.ChatMessageList);
+                }
+                else
+                {
+                    ChatMessageList = new ObservableCollection<ChatMessageViewModel>();
+                }
+            }
         }
 
         private static ChatMessage[] CreateChatPrompt(
@@ -90,8 +109,10 @@ namespace ChatWpfUI
             {
                 Id = Guid.NewGuid().ToString().Replace("-", ""),
                 Name = "New Chat",
+                Time = DateTime.Now
             };
-            ChatList.Add(newChat);
+            ChatList.Insert(0,newChat);
+            SelectedChat = newChat;
 
             Prompt = new ChatMessageViewModel
             {
@@ -114,12 +135,12 @@ namespace ChatWpfUI
                 return;
             }
 
-            if(sendMessage.Parent == null)
+            if(sendMessage.ParentId == null)
             {
                 var last = ChatMessageList.LastOrDefault();
                 if(last != null)
                 {
-                    sendMessage.Parent = last;
+                    sendMessage.ParentId = last.Id;
                 }
             }
 
@@ -138,7 +159,7 @@ namespace ChatWpfUI
             {
                 promptMessage = new ChatMessageViewModel();
                 promptMessage.Id = Guid.NewGuid().ToString().Replace("-", "");
-                promptMessage.Parent = sendMessage.Parent;
+                promptMessage.ParentId = sendMessage.ParentId;
                 promptMessage.Send = this.Send;
                 ChatMessageList.Add(promptMessage);
             }
@@ -149,7 +170,7 @@ namespace ChatWpfUI
             promptMessage.IsSent = true;
             promptMessage.IsUser = true;
             promptMessage.Time = DateTime.Now;
-
+            sendMessage.Prompt = "";
             CurrentChatMessage = promptMessage;
             var chatServiceSettings = new ChatServiceSettings
             {
@@ -212,7 +233,7 @@ namespace ChatWpfUI
             resultMessage.Time = DateTime.Now;
             resultMessage.IsError = isResponseStrError;
             resultMessage.Prompt = isResponseStrError ? prompt : "";
-            resultMessage.Parent = promptMessage;
+            resultMessage.ParentId = promptMessage.Id;
 
             if (ChatMessageList.LastOrDefault() == resultMessage)
             {
@@ -243,11 +264,12 @@ namespace ChatWpfUI
                     {
                         MessageDo message = new MessageDo();
                         message.id = messageViewModel.Id;
-                        message.parentId = messageViewModel.Parent?.Id;
+                        message.parentId = messageViewModel.ParentId;
                         message.chatId = chatViewModel.Id;
                         message.isUser = messageViewModel.IsUser;
                         message.role = messageViewModel.IsUser ? "user" : "assistant";
                         message.message = messageViewModel.Message;
+                        message.time = messageViewModel.Time;
                         messages.Add(message);
                     }
                     exists.messages = messages;
@@ -259,17 +281,19 @@ namespace ChatWpfUI
                     {
                         Id = chatViewModel.Id,
                         name = chatViewModel.Name,
+                        time = DateTime.Now
                     };
                     var messages = new List<MessageDo>();
                     foreach (var messageViewModel in chatMessageViewModels)
                     {
                         MessageDo message = new MessageDo();
                         message.id = messageViewModel.Id;
-                        message.parentId = messageViewModel.Parent?.Id;
+                        message.parentId = messageViewModel.ParentId;
                         message.chatId = chatViewModel.Id;
                         message.isUser = messageViewModel.IsUser;
                         message.role = messageViewModel.IsUser ? "user" : "assistant";
                         message.message = messageViewModel.Message;
+                        message.time = messageViewModel.Time;
                         messages.Add(message);
                     }
                     newChat.messages = messages;
@@ -278,9 +302,44 @@ namespace ChatWpfUI
             }
         }
 
-        private async Task Load()
+        private void LoadHistory()
         {
+            using (var db = new LiteDatabase(@".\store.db"))
+            {
+                var chats = db.GetCollection<ChatDo>("chat");
+                IEnumerable<ChatDo> chatAll = chats.FindAll();
+                ChatList = new ObservableCollection<ChatViewModel>(
+                        chatAll.Select(p =>
+                        {
+                            ChatViewModel chatViewModel = new ChatViewModel { Id = p.Id, Name = p.name, Time = p.time };
+                            var allMessages = p.messages.Select(p =>
+                                   new ChatMessageViewModel
+                                   {
+                                       Id = p.id,
+                                       IsUser = p.isUser,
+                                       Message = p.message,
+                                       Time = p.time,
+                                       ParentId = p.parentId
+                                   }
+                               );
+                            foreach (var message in allMessages)
+                            {
+                                if (message.IsUser)
+                                {
+                                    message.Result = allMessages.FirstOrDefault(p => p.ParentId == message.Id);
+                                }
+                            }
+                            chatViewModel.ChatMessageList = allMessages.ToList();
+                            return chatViewModel;
+                        }
+                    ).OrderByDescending(p => p.Time).ToList());
+                SelectedChat = ChatList?.FirstOrDefault();
+            }
+        }
 
+        public void Dispose()
+        {
+            this.PropertyChanged -= MainViewModel_PropertyChanged;
         }
 
     }

@@ -12,6 +12,8 @@ namespace ChatWpfUI.Model
 
         public string name { get; set; }
 
+        public DateTime time { get; set; }
+
         public List<MessageDo> messages { get; set; }
         
     }
@@ -29,6 +31,8 @@ namespace ChatWpfUI.Model
         public string role { get; set; }
 
         public bool isUser { get; set; }
+
+        public DateTime time { get; set; }
 
     }
 }

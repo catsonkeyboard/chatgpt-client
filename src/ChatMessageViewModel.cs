@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace ChatWpfUI
 {
-    public class ChatMessageViewModel : ObservableObject
+    public partial class ChatMessageViewModel : ObservableObject
     {
         public string Id { get; set; }
 
@@ -18,21 +18,26 @@ namespace ChatWpfUI
 
         public string Message { get; set; }
 
-        public string Prompt { get; set; }
+        [ObservableProperty]
+        private string _prompt;
 
         public DateTime Time { get; set; }
 
-        public bool IsEditing { get; set; }
+        [ObservableProperty]
+        private bool _isEditing;
 
-        public bool IsSent { get; set; }
+        [ObservableProperty]
+        private bool _isSent;
 
-        public bool IsError { get; set; }
+        [ObservableProperty]
+        private bool _isError;
 
-        public bool IsAwaiting { get; set; }
+        [ObservableProperty]
+        private bool _isAwaiting;
 
         public ChatMessageViewModel Result { get; set; }
 
-        public ChatMessageViewModel Parent { get; set; }
+        public string ParentId { get; set; }
 
         public Func<ChatMessageViewModel, Task>? Send { get;set; }
 
