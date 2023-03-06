@@ -227,13 +227,29 @@
                 </MultiDataTrigger>
             </DataTemplate.Triggers>
         </DataTemplate>
+
+        <!--<ControlTemplate x:Key="ChatMessageTemplate">
+
+        </ControlTemplate>
+
+        <ControlTemplate x:Key="ConfigTemplate">
+
+        </ControlTemplate>-->
+
+        <!--<DataTemplate x:Key="ConfigTemplate">
+            <StackPanel Orientation="Vertical">
+                <StackPanel Orientation="Horizontal">
+                    <Label Content="APIKEY:" Width="100"/>
+                    <TextBox Text="{Binding ApiKey}" Width="100"/>
+                </StackPanel>
+            </StackPanel>
+        </DataTemplate>-->
     </ui:FluentWindow.Resources>
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
-
         <Grid Grid.Row="1">
             <Grid>
                 <Grid.RowDefinitions>
@@ -268,7 +284,7 @@
                         </ControlTemplate>
                     </ItemsControl.Template>
                 </ItemsControl>
-
+                
                 <Border Grid.Row="1" Grid.Column="1" SnapsToDevicePixels="True"
                         BorderBrush="{DynamicResource ControlElevationBorderBrush}">
                     <Grid DataContext="{Binding ViewModel.Prompt}">

@@ -36,8 +36,9 @@ namespace ChatWpfUI
                 // App Host
                 services.AddHostedService<ApplicationHostService>();
 
-                services.AddTransient<IChatService,ChatService>();
-
+                //services.AddTransient<IChatService,ChatService>();
+                //services.AddTransient<ICompletionsService, CompletionsService>();
+                services.AddTransient<IChatStreamService, ChatStreamService>();
                 //// Main window container with navigation
                 services.AddScoped<IWindow, MainWindow>();
                 services.AddScoped<MainViewModel>();

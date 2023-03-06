@@ -16,7 +16,8 @@ namespace ChatWpfUI
 
         public string Avatar { get; set; }
 
-        public string Message { get; set; }
+        [ObservableProperty]
+        private string _message;
 
         [ObservableProperty]
         private string _prompt;

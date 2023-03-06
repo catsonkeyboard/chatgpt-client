@@ -9,6 +9,9 @@ namespace OpenAI;
 [JsonSerializable(typeof(ChatUsage))]
 [JsonSerializable(typeof(ChatResponseError))]
 [JsonSerializable(typeof(ChatError))]
+[JsonSerializable(typeof(StreamChatResponse))]
+[JsonSerializable(typeof(StreamChatChoice))]
+[JsonSerializable(typeof(StreamChatMessage))]
 public partial class ChatJsonContext : JsonSerializerContext
 {
 }

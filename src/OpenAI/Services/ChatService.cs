@@ -10,7 +10,12 @@ namespace OpenAI;
 
 public class ChatService : IChatService
 {
-    private static readonly HttpClient s_client = new();
+    private static HttpClientHandler handler = new HttpClientHandler
+    {
+        Proxy = new WebProxy("http://localhost:7890")
+    };
+
+    private static readonly HttpClient s_client = new(handler);
 
     private static readonly ChatJsonContext s_serializerContext = new(
         new JsonSerializerOptions

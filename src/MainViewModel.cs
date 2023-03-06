@@ -11,8 +11,10 @@ using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Documents;
 using System.Windows.Media;
+using System.Windows.Threading;
 
 namespace ChatWpfUI
 {
@@ -72,11 +74,11 @@ namespace ChatWpfUI
             ObservableCollection<ChatMessageViewModel> messages)
         {
             var chatMessages = new List<ChatMessage>();
-            chatMessages.Add(new ChatMessage
-            {
-                Role = "system",
-                Content = ""
-            });
+            //chatMessages.Add(new ChatMessage
+            //{
+            //    Role = "system",
+            //    Content = ""
+            //});
             foreach (var message in messages)
             {
                 if (!string.IsNullOrEmpty(message.Message) && message.Result is { })
@@ -178,75 +180,51 @@ namespace ChatWpfUI
                 Messages = chatPrompts,
                 Suffix = null,
                 Temperature = 0.7m,
-                MaxTokens = 256,
+                MaxTokens = 512,
                 TopP = 1.0m,
                 Stop = null,
                 ApiKey = ""
             };
-            var responseStr = default(string);
-            bool isResponseStrError = false;
-            IChatService chatService = _serviceProvider.GetService<IChatService>();
-            var responseData = await chatService.GetResponseDataAsync(chatServiceSettings);
-            if(responseData is null)
+            IChatStreamService chatService = _serviceProvider.GetService<IChatStreamService>();
+            bool first = true;
+            ChatMessageViewModel? lastMessage = null;
+            resultMessage = new ChatMessageViewModel
             {
-                responseStr = "error";
-                isResponseStrError = true;
-            }
-            else if (responseData is ChatResponseError error)
-            {
-                var message = error.Error?.Message;
-                responseStr = message ?? "Unknown error.";
-                isResponseStrError = true;
-            }
-            else if (responseData is ChatResponseSuccess success)
-            {
-                var message = success.Choices?.FirstOrDefault()?.Message?.Content?.Trim();
-                responseStr = message ?? "";
-            }
-
-            // Update
-
-            if (isResponseStrError)
-            {
-                resultMessage = promptMessage;
-            }
-
-            if (resultMessage is null)
-            {
-                resultMessage = new ChatMessageViewModel
+                Id = Guid.NewGuid().ToString().Replace("-", ""),
+                IsSent = false,
+            };
+            resultMessage.Send = this.Send;
+            await chatService.GetResponseDataAsync(chatServiceSettings,
+                (responseStr) => 
                 {
-                    Id = Guid.NewGuid().ToString().Replace("-", ""),
-                    IsSent = false,
-                };
-                resultMessage.Send = this.Send;
-                ChatMessageList.Add(resultMessage);
-            }
-            else
-            {
-                if (!isResponseStrError)
-                {
-                    resultMessage.IsSent = true;
-                }
-            }
-            resultMessage.Message = responseStr;
-            resultMessage.IsUser = false;
-            resultMessage.Time = DateTime.Now;
-            resultMessage.IsError = isResponseStrError;
-            resultMessage.Prompt = isResponseStrError ? prompt : "";
-            resultMessage.ParentId = promptMessage.Id;
-
-            if (ChatMessageList.LastOrDefault() == resultMessage)
-            {
-                resultMessage.IsSent = false;
-            }
-
-            await Save(SelectedChat, ChatMessageList);
-
+                    if (first)
+                    {
+                        ChatMessageList.Add(resultMessage);
+                    }
+                    if ("[DONE]".Equals(responseStr))
+                    {
+                        resultMessage.IsSent = true;
+                        resultMessage.IsUser = false;
+                        resultMessage.Time = DateTime.Now;
+                        resultMessage.Prompt = prompt;
+                        resultMessage.ParentId = promptMessage.Id;
+                    }
+                    else
+                    {
+                        resultMessage.Message += responseStr;
+                    }
+                    if (ChatMessageList.LastOrDefault() == resultMessage)
+                    {
+                        resultMessage.IsSent = false;
+                    }
+                    lastMessage = resultMessage;
+                    first = false;
+                });
             //set resultMessage to current
-            CurrentChatMessage = resultMessage;
+            CurrentChatMessage = lastMessage;
             //set resultMessage to promptMessage's result
-            promptMessage.Result = isResponseStrError ? null : resultMessage;
-
+            promptMessage.Result = lastMessage;
+            await Save(SelectedChat, ChatMessageList);
             IsEnabled = true;
         }
 
@@ -300,6 +278,11 @@ namespace ChatWpfUI
                     chats.Insert(newChat);
                 }
             }
+        }
+
+        private void SaveConfig()
+        {
+
         }
 
         private void LoadHistory()
