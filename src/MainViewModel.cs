@@ -294,11 +294,10 @@ namespace ChatWpfUI
             using (var db = new LiteDatabase(@".\store.db"))
             {
                 var config = db.GetCollection<Config>("config");
-                Config exists = config.FindAll().FirstOrDefault();
+                Config exists = config.FindOne(p => p.Id.Equals(SysConfig.Id));
                 if(exists != null)
-                { 
+                {
                     config.Update(SysConfig);
-
                 }
                 else
                 {
@@ -315,10 +314,12 @@ namespace ChatWpfUI
                 Config exists = config.FindAll().FirstOrDefault();
                 if (exists != null)
                 {
+                    SysConfig.Id = Guid.NewGuid().ToString().Replace("-","");
                     SysConfig.ApiKey = exists.ApiKey;
                     SysConfig.Proxy = exists.Proxy;
                 }
             }
+            SysConfig.Id = Guid.NewGuid().ToString().Replace("-", "");
         }
 
         private void LoadHistory()
