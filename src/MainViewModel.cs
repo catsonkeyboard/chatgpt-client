@@ -320,6 +320,13 @@ namespace ChatWpfUI
             }
         }
 
+        [RelayCommand]
+        //打开设置页面
+        public void Setting()
+        {
+
+        }
+
         public void Dispose()
         {
             this.PropertyChanged -= MainViewModel_PropertyChanged;

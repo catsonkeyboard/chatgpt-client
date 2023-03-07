@@ -9,5 +9,7 @@ namespace ChatWpfUI.Model
     public record Config
     {
         public string ApiKey { get; set; }
+
+        public string Proxy { get; set; }
     }
 }
