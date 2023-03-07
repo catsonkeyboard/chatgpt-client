@@ -7,6 +7,7 @@
         xmlns:local="clr-namespace:ChatWpfUI"
         xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
         xmlns:mdxam="clr-namespace:MdXaml;assembly=MdXaml"
+        xmlns:model="clr-namespace:ChatWpfUI.Model"
         mc:Ignorable="d"
         Title="{Binding ViewModel.ApplicationTitle, Mode=OneWay}"
         Height="600"
@@ -270,18 +271,22 @@
             </DataTemplate.Triggers>
         </DataTemplate>
 
-        <ControlTemplate x:Key="ChatMessageTemplate">
+        <!--<ControlTemplate x:Key="ChatMessageTemplate">
 
-        </ControlTemplate>
+        </ControlTemplate>-->
 
-        <ControlTemplate x:Key="ConfigTemplate">
-            <StackPanel Orientation="Vertical">
-                <StackPanel Orientation="Horizontal">
-                    <Label Content="APIKEY:" Width="100"/>
-                    <TextBox Text="{Binding ApiKey}" Width="100"/>
+        <DataTemplate x:Key="ConfigTemplate" DataType="{x:Type model:Config}">
+            <StackPanel Orientation="Vertical" Margin="0 20 0 0">
+                <StackPanel Orientation="Horizontal" Margin="0 0 0 0">
+                    <Label Content="APIKEY:" Width="80" VerticalAlignment="Center"/>
+                    <TextBox Text="{Binding ApiKey}" Width="260"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0 15 0 0">
+                    <Label Content="PROXY:" Width="80" VerticalAlignment="Center"/>
+                    <TextBox Text="{Binding Proxy}" Width="260"/>
                 </StackPanel>
             </StackPanel>
-        </ControlTemplate>
+        </DataTemplate>
 
         <!--<DataTemplate x:Key="ConfigTemplate">
             <StackPanel Orientation="Vertical">
@@ -360,6 +365,16 @@
                 </Border>
             </Grid>
         </Grid>
+        
+        <ui:Dialog
+            x:Name="RootDialog"
+            DialogHeight="260"
+            DataContext="{Binding ViewModel.SysConfig}"
+            ContentTemplate="{StaticResource ConfigTemplate}"
+            Grid.Row="0"
+            Grid.RowSpan="2"
+            Padding="0,42,0,0" />
+        
         <ui:TitleBar
             Title="{Binding ViewModel.ApplicationTitle}"
             Grid.Row="0"

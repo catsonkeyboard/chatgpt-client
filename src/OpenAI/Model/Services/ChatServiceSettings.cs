@@ -12,4 +12,5 @@ public class ChatServiceSettings
     public string? Stop { get; set; }
 
     public string? ApiKey { get; set; }
+    public string? Proxy { get; set; }
 }

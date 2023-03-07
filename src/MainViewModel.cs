@@ -12,9 +12,11 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Media;
 using System.Windows.Threading;
+using Wpf.Ui.Contracts;
 
 namespace ChatWpfUI
 {
@@ -43,12 +45,18 @@ namespace ChatWpfUI
         [ObservableProperty]
         private bool _isEnabled;
 
-        public MainViewModel(IServiceProvider serviceProvider) 
+        public Config SysConfig => _serviceProvider.GetService<Config>();
+
+        private readonly IDialogService _dialogService;
+
+        public MainViewModel(IServiceProvider serviceProvider, IDialogService dialogService) 
         {
             _serviceProvider = serviceProvider;
+            _dialogService = dialogService;
             ChatList = new ObservableCollection<ChatViewModel>();
             ChatMessageList = new ObservableCollection<ChatMessageViewModel>();
             LoadHistory();
+            LoadConfig();
             NewChat();
             this.PropertyChanged += MainViewModel_PropertyChanged;
             this.MainViewModel_PropertyChanged(null, new PropertyChangedEventArgs(nameof(SelectedChat)));
@@ -183,7 +191,8 @@ namespace ChatWpfUI
                 MaxTokens = 512,
                 TopP = 1.0m,
                 Stop = null,
-                ApiKey = ""
+                ApiKey = SysConfig.ApiKey,
+                Proxy = SysConfig.Proxy,
             };
             IChatStreamService chatService = _serviceProvider.GetService<IChatStreamService>();
             bool first = true;
@@ -282,7 +291,34 @@ namespace ChatWpfUI
 
         private void SaveConfig()
         {
+            using (var db = new LiteDatabase(@".\store.db"))
+            {
+                var config = db.GetCollection<Config>("config");
+                Config exists = config.FindAll().FirstOrDefault();
+                if(exists != null)
+                { 
+                    config.Update(SysConfig);
 
+                }
+                else
+                {
+                    config.Insert(SysConfig);
+                }
+            }
+        }
+
+        private void LoadConfig()
+        {
+            using (var db = new LiteDatabase(@".\store.db"))
+            {
+                var config = db.GetCollection<Config>("config");
+                Config exists = config.FindAll().FirstOrDefault();
+                if (exists != null)
+                {
+                    SysConfig.ApiKey = exists.ApiKey;
+                    SysConfig.Proxy = exists.Proxy;
+                }
+            }
         }
 
         private void LoadHistory()
@@ -324,7 +360,22 @@ namespace ChatWpfUI
         //打开设置页面
         public void Setting()
         {
-
+            var apiKeyBak = SysConfig.ApiKey;
+            var proxyBak = SysConfig.Proxy;
+            var rootDialog = _dialogService.GetDialogControl();
+            rootDialog.Title = "Setting";
+            rootDialog.ButtonLeftName = "OK";
+            rootDialog.ButtonRightName = "Cancel";
+            rootDialog.ButtonLeftClick += (_, _) => {
+                SaveConfig();
+                rootDialog.Hide();
+            };
+            rootDialog.ButtonRightClick += (_, _) => {
+                SysConfig.ApiKey = apiKeyBak;
+                SysConfig.Proxy = proxyBak;
+                rootDialog.Hide();
+            };
+            rootDialog.Show();
         }
 
         public void Dispose()

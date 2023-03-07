@@ -17,6 +17,7 @@ using System.Collections.Specialized;
 using static System.Net.Mime.MediaTypeNames;
 using OpenAI;
 using Wpf.Ui.Contracts;
+using System.Windows.Forms;
 
 namespace ChatWpfUI
 {
@@ -36,6 +37,8 @@ namespace ChatWpfUI
             DataContext = this;
 
             InitializeComponent();
+            RootDialog.Content = RootDialog.ContentTemplate.LoadContent();
+            dialogService.SetDialogControl(RootDialog);
         }
     }
 }

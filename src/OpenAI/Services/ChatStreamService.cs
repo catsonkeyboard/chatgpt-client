@@ -14,11 +14,6 @@ namespace OpenAI;
 
 public class ChatStreamService : IChatStreamService
 {
-    //private static HttpClientHandler handler = new HttpClientHandler
-    //{
-    //    Proxy = new WebProxy("http://localhost:7890")
-    //};
-
     private static readonly ChatJsonContext s_serializerContext = new(
         new JsonSerializerOptions
         {
@@ -48,9 +43,13 @@ public class ChatStreamService : IChatStreamService
         return JsonSerializer.Serialize(requestBody, s_serializerContext.ChatRequestBody);
     }
 
-    private static async Task SendApiRequestAsync(string apiUrl, string apiKey, string requestBodyJson,Action<string> fetchResponse)
+    private static async Task SendApiRequestAsync(string apiUrl,string? proxy, string apiKey, string requestBodyJson,Action<string> fetchResponse)
     {
-        using HttpClient s_client = new();
+        HttpClientHandler handler = new HttpClientHandler
+        {
+            Proxy = new WebProxy(proxy)
+        };
+        using HttpClient s_client = proxy == null ? new() : new(handler);
         // Create a new HttpClient for making the API request
         // Set the API key in the request headers
         if (s_client.DefaultRequestHeaders.Contains("Authorization"))
@@ -132,11 +131,12 @@ public class ChatStreamService : IChatStreamService
         //}
 
         var apiKey = settings.ApiKey;
+        var proxy = settings.Proxy;
 
         // Get the request body JSON
         var requestBodyJson = GetRequestBodyJson(settings);
 
         // Send the API request and get the response data
-        await SendApiRequestAsync(apiUrl, apiKey, requestBodyJson, fetchResponse);
+        await SendApiRequestAsync(apiUrl, proxy, apiKey, requestBodyJson, fetchResponse);
     }
 }
